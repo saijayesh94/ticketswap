@@ -1,0 +1,81 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Users {
+  id                   String         @id @default(uuid())
+  name                 String
+  email                String         @unique
+  phone                String?        @unique
+  hashedPassword       String?
+  googleId             String?        @unique
+  admin                Boolean        @default(false)
+  otp                  Int?
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+  tickets              Tickets[]
+  transactionsAsBuyer  Transactions[] @relation("buyerTransactions")
+  transactionsAsSeller Transactions[] @relation("sellerTransactions")
+}
+
+model Tickets {
+  id             String         @id @default(uuid())
+  user_id        String
+  user           Users          @relation(fields: [user_id], references: [id])
+  bus_company    String
+  departure      String
+  arrival        String
+  must_be        MustBe?
+  departure_date String
+  departure_time String
+  seat_number    String
+  price          Int
+  ticket_url     String
+  status         TicketStatus   @default(available)
+  // blocked_until  DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  transactions   Transactions[]
+}
+
+model Transactions {
+  id               String        @id @default(uuid())
+  buyer_id         String
+  seller_id        String
+  ticket_id        String
+  ticket           Tickets       @relation(fields: [ticket_id], references: [id])
+  buyer            Users         @relation("buyerTransactions", fields: [buyer_id], references: [id])
+  seller           Users         @relation("sellerTransactions", fields: [seller_id], references: [id])
+  // amount           Int
+  payment_status   PaymentStatus @default(pending)
+  transaction_date DateTime      @default(now())
+  payment_intent   String
+}
+
+enum TicketStatus {
+  available
+  sold
+  canceled
+}
+
+enum PaymentStatus {
+  pending
+  completed
+  failed
+}
+
+enum MustBe {
+  mail
+  femail
+}
